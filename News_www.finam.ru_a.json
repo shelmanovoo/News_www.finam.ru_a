@@ -1,0 +1,310 @@
+{
+  "name": "News_www.finam.ru_a",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "finam_rss",
+          "mode": "list",
+          "cachedResultName": "finam_rss"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "new",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -976,
+        112
+      ],
+      "id": "ce4fa4cc-6026-4180-8b8c-7f4d961008ba",
+      "name": "Select rows from a table",
+      "credentials": {
+        "postgres": {
+          "id": "wujVNwu5jIKjF2n0",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content_snippet }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Extract key entities from the text and return JSON only.  Entities: - PER: Jerome Powell, Joe Biden, Xi Jinping - ORG: Gazprom, Rosneft, Sberbank, Novatek, Lukoil, Nornickel, VTB Bank, X5 Group, Magnit, Severstal, Aeroflot, Mobile TeleSystems, ALROSA, Mechel, PIKK, Rostelecom, Sovcombank, Inter RAO, Magnitogorsk Iron & Steel Works, Rusagro, NLMK, MOEX - LOC/GPE: Russia, USA, China  Tonality: positive | negative | neutral   Category: Company | Politics/Economy | Finance | Secular    Company→Ticker mapping:   Gazprom→GAZP, Rosneft→ROSN, Sberbank→SBER, Novatek→NVTK, Lukoil→LKOH, Nornickel→GMKN, VTB Bank→VTBR, X5 Group→FIVE, Magnit→MGNT, Severstal→CHMF, Aeroflot→AFLT, Mobile TeleSystems→MTSS, ALROSA→ALRS, Mechel→MTLR, PIKK→PIKK, Rostelecom→RTKM, Sovcombank→SOVC, Magnitogorsk Iron & Steel Works→MMK, Rusagro→AGRO, NLMK→NLMK, MOEX→MOEX  Prognosis: include ONLY tickers explicitly mentioned in the text and assign short-term forecast (\"growth (+1-3%)\", \"decline (-1-3%)\", \"no change\").   If no company is mentioned → prognosis must be an empty object.  Return JSON strictly in this format:  {   \"status\":\"processed\",   \"data\":{     \"pubDate\":\"{{ $json.pub_date }}\",     \"entities\":{\"PER\":[...],\"ORG\":[...],\"LOC/GPE\":[...]},     \"tonality\":\"<positive|negative|neutral>\",     \"category\":\"<Company|Politics/Economy|Finance|Secular>\",     \"prognosis\":{       \"<Ticker>\":\"<Forecast>\",       ...     }   } }"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -784,
+        112
+      ],
+      "id": "7e60959a-5389-42af-ae7f-f37f50332ebb",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "chatId": "=1251086517\n",
+        "text": "=Дата:{{ $json.pubDate }}\nТема:{{ $('Select rows from a table').item.json.content_snippet }}\nПерсрны:{{ $json.persons }}\nСтрана:{{ $json.locations }}\nКатегория:{{ $json.category }}\nТональность:{{ $json.tonality }}\nПрогноз:{{ JSON.stringify($json.prognosis, null, 2) }}\nlink:{{ $('Select rows from a table').item.json.link }}",
+        "additionalFields": {}
+      },
+      "id": "20f0a8bd-8e30-49bd-a927-05d4fb2d185a",
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "f0e0fa69-37c3-4e85-ba18-2ef8b9c5ab9b",
+      "credentials": {
+        "telegramApi": {
+          "id": "4KLXhmmNhE8XgOtg",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "79006876-f2d2-4992-8fca-4dcf6e3713b8",
+              "leftValue": "={{ $json.tonality }}",
+              "rightValue": "нейтральная",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "c2cc698a-c87d-4459-af87-6730998262de",
+              "leftValue": "={{ $json.tonality }}",
+              "rightValue": "neutral",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "2b0e296f-acb1-4fae-bd90-ac616f444e74",
+              "leftValue": "={{ Object.keys(($json.prognosis || {})).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        112
+      ],
+      "id": "70d0bb4f-b811-426b-b366-845500ed17ab",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE finam_rss \nSET new = 0 \nWHERE link = '{{ $('Select rows from a table').item.json.link }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        128
+      ],
+      "id": "9ed92723-e073-4083-9826-1065f90fd729",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "wujVNwu5jIKjF2n0",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "store_news"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1168,
+        112
+      ],
+      "id": "8e209494-3265-44b3-8b35-ff8a6f4a99e4",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4.1-nano",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        320
+      ],
+      "id": "fd6c94e5-b645-4668-8093-0a21253d838e",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "RuRzX28lgmAEHfEg",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Обрабатываем все входные элементы\nconst items = $input.all();\n\nconst result = [];\nfor (const item of items) {\n  const inputText = item.json.text;\n  \n  try {\n    const parsedData = JSON.parse(inputText);\n\n    // Получаем guid из оригинальных данных\n    let guid = '';\n    try {\n      if (item.json.guid) {\n        guid = item.json.guid;\n      } else if (item.json.link) {\n        guid = item.json.link;\n      }\n    } catch (error) {\n      guid = '';\n    }\n\n    result.push({\n      status: parsedData.status,\n      pubDate: parsedData.data.pubDate,\n      tonality: parsedData.data.tonality,\n      category: parsedData.data.category,\n      persons: parsedData.data.entities.PER,\n      organizations: parsedData.data.entities.ORG,\n      locations: parsedData.data.entities[\"LOC/GPE\"],\n      prognosis: parsedData.data.prognosis,\n      guid: guid\n    });\n  } catch (parseError) {\n    // Если не удалось распарсить, добавляем объект с ошибкой\n    result.push({\n      status: \"error\",\n      error: \"Failed to parse JSON\",\n      originalText: inputText\n    });\n  }\n}\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        112
+      ],
+      "id": "f8e13e60-9d60-4a8a-96a8-587a9de2d985",
+      "name": "Parser",
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Select rows from a table": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "18b73fb0-87da-4a95-a620-eb1268edfd1c",
+  "meta": {
+    "instanceId": "9ce263ea74ac56142ad0b445edd4996f0dce195bb2058608aecc86f0fd24906f"
+  },
+  "id": "xFQmDLneomQjt5iZ",
+  "tags": []
+}
