@@ -63,3 +63,33 @@ JavaScript-код обрабатывает JSON-ответ от AI
 
 Логика работы:
 Workflow обрабатывает финансовые новости, фильтрует значимые (с прогнозами и не нейтральной тональностью) и отправляет аналитические сводки в Telegram для быстрого принятия торговых решений.
+
+Примеры обработки новостей:
+
+stock, [3 Nov 2025 at 19:51:08]:
+Дата:2025-10-29T13:45:46.000Z
+Тема:Акции Nvidia резко растут на фоне позитива вокруг ИИ...
+Персрны:
+Страна:
+Категория:Company
+Тональность:positive
+Прогноз:{
+  "NVDA": "growth (+1-3%)"
+}
+link:https://www.finam.ru/publications/item/nvidia-stala-pervoy-kompaniey-v-istorii-s-kapitalizatsiey-v-5-trln-20251029-1700/?utmsource=rss&utmmedium=worldnews&newstofinamb=worldnews
+
+This message was sent automatically with n8n
+
+
+Дата:2025-10-29T09:43:35.000Z
+Тема:Рыночный оптимизм подогрели заявления главы Nvidia Дженсена Хуана о ожиданиях заказов на ИИ-чипы на $500 млрд...
+Персрны:Дженсен Хуан
+Страна:
+Категория:Company
+Тональность:positive
+Прогноз:{
+  "NVDA": "growth (+1-3%)"
+}
+link:https://www.finam.ru/publications/item/aktsii-nvidia-vyrosli-na-3-priblizivshis-k-rekordnoy-otsenke-v-5-trln-20251029-1243/?utmsource=rss&utmmedium=worldnews&newstofinamb=worldnews
+
+This message was sent automatically with n8n
